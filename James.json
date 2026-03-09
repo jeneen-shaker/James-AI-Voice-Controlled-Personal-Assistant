@@ -1,0 +1,220 @@
+{
+  "name": "James",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "1c0448c7-6d51-42e0-ade4-645231b8cbb2",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "410724d6-6643-4f70-bf72-8cd5783dbcdd",
+      "name": "Webhook",
+      "webhookId": "1c0448c7-6d51-42e0-ade4-645231b8cbb2"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        304
+      ],
+      "id": "dcd02b0d-de15-4b9f-b850-04cbb877b8a6",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "VhrTTZueQAIgel15",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.task_type }}",
+        "options": {
+          "systemMessage": "Role: You are the Personal Assistant Router. Your sole responsibility is to analyze the user's intent and delegate the task to the specialized tool or \"Mini Agent\". You must NEVER generate content (emails, blogs, or summaries) yourself; you only act as a bridge.\n\nAvailable Tools:\n\nemailAgent: Use for ALL email-related tasks (sending, drafting, searching inbox).\n\ncalendarAgent: Use for scheduling, checking, or updating calendar events.\n\ncontactAgent: Use for retrieving, adding, or updating contact details (email, phone, etc.).\n\ncontentCreator: Use for generating blog posts or long-form creative writing.\n\nTavily: Use for searching the web for real-time information or factual data.\n\nMandatory Workflow Rules:\n\nContact Dependency: If a task involves a person (e.g., sending an email or inviting to a meeting) and their contact info is not provided in the input, you MUST first call contactAgent to retrieve their email address.\n\nSequential Execution: Only after receiving the address from contactAgent, call the next relevant tool (e.g., emailAgent) passing the retrieved info.\n\nData Integrity: Always pass data as simple strings to avoid \"Parsing Errors\" (e.g., do not wrap email addresses in arrays).\n\nExample Strategy:\n\nInput: \"Draft an email to Nate asking about the meeting.\"\n\nStep 1: Call contactAgent to find \"Nate\".\n\nStep 2: Once Nate's email [email] is retrieved, call emailAgent with the query: \"Draft an email to Nate ([email]) asking about the meeting.\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        192,
+        0
+      ],
+      "id": "9ae35efc-aeb7-4fcb-8f9d-bcbeb75c7a49",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.headers.host }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        256,
+        336
+      ],
+      "id": "43702754-221b-4e8d-9f5b-11f30665723c",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        544,
+        0
+      ],
+      "id": "5b06eada-20d2-4815-a13f-90e31aa86669",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "toolDescription": "use this tool to search on internet",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"api_key\": \"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\",\n  \"query\": \"={{ $json.command }}\", \n  \"search_depth\": \"basic\",\n  \"include_answer\": true,\n  \"topic\": \"news\",\n  \"include_raw_content\": true,\n  \"max_results\": 3\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        656,
+        288
+      ],
+      "id": "8c33aa01-19ce-469a-8013-3faddb05861c",
+      "name": "tavily"
+    },
+    {
+      "parameters": {
+        "description": "call this tool for any calender action",
+        "workflowId": {
+          "__rl": true,
+          "value": "EepQb8VaCQuQumEf",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/EepQb8VaCQuQumEf",
+          "cachedResultName": "Calender"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        432,
+        336
+      ],
+      "id": "ceb3995a-30e5-4630-b70e-0bc0ff6b85e4",
+      "name": "Calender"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tavily": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calender": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d17a109f-ae03-435c-8cdb-19b7974e41e2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6f4c1fa695542c732ce198c9989710acb17eaf0012b7459e9f2d197b5e1a4465"
+  },
+  "id": "VHGBzOw3GKyI23Ni",
+  "tags": []
+}
